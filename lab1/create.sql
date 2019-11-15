@@ -1,6 +1,6 @@
 /* psql -h localhost hospital lander */
 create database Hospital;
-create user lander with password 'Bjauno1998';
+create user lander with password '';
 grant all on database hospital to lander;
 
 create type _SEX as enum ('м', 'ж');
