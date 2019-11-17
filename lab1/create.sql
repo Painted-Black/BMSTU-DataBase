@@ -10,6 +10,19 @@ create type _HEALTH_GROUP as enum ('1', '2', '3a', '3b');
 create type _DISABILITY as enum ('1', '2', '3', 'нет');
 create type _CATEGORY as enum ('Первая', 'Вторая', 'Высшая');
 
+
+create table Doctors
+    (id serial primary key, 
+    name varchar(60) NOT NULL,
+    surname varchar(60) NOT NULL, 
+    sex _SEX, date_of_birth date NOT NULL, 
+    speciality text NOT NULL, 
+    phone_num  varchar(11), 
+    category _CATEGORY, 
+    salary integer NOT NULL, 
+    chief integer references doctors(id),
+    CHECK (salary > 9000));
+
 create table Doctors
     (id serial primary key, 
     name varchar(60) NOT NULL,
