@@ -1,3 +1,4 @@
+/* sudo -u postgres psql */
 /* psql -h localhost hospital lander */
 create database Hospital;
 create user lander with password '';
