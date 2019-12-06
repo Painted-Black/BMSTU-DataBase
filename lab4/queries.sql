@@ -13,7 +13,7 @@ ALTER TABLE receptions ADD CONSTRAINT receptions_doctor_fkey FOREIGN KEY (doctor
 CREATE OR REPLACE FUNCTION get_patients(city_name varchar)
   RETURNS varchar
 AS $$
-o = plpy.execute("select * from outpatiencards")
+o = plpy.execute("select * from outpatientcards;")
 a = plpy.execute("select * from addresses")
 count = 0
 for row_o in o:
@@ -31,24 +31,24 @@ CREATE OR REPLACE FUNCTION count_by_age(a integer, b integer)
   RETURNS integer
 AS $$
 count = 0
-for row in plpy.execute("select date_of_birth from outpatiencards"):
+for row in plpy.execute("select date_of_birth from outpatientcards;"):
     tmp = int(row['date_of_birth'][:4])
     if tmp >= a and tmp <= b:
          count += 1
 return count
 $$ LANGUAGE plpython3u;
 
-SELECT * FROM number_of_spec_same_age(1990, 2000);
+SELECT * FROM count_by_age(1990, 2000);
 
 -- 3) Определяемая пользователем табличная функция
 -- вывести всех врачей опреленной специальности
 CREATE OR REPLACE FUNCTION get_table (_spec text)
-  RETURNS table (name varchar, surname varchar, phone_num varchar)
+  RETURNS table (name varchar, surname varchar, phone_num varchar, speciality text)
 AS $$
 rv = plpy.execute('SELECT * FROM doctors')
 res = []
 for row in rv:
-    if (row['speciality'] == _spec and row['']):
+    if (row['speciality'] == _spec):
         res.append(row)
 return res
 $$ LANGUAGE plpython3u;
@@ -56,7 +56,7 @@ $$ LANGUAGE plpython3u;
 SELECT * FROM get_table('Хирург');
 
 -- 4) хранимая процедура
--- поднять цену в 1.5 раза для билетов, купленных за определенной число дней до текущей даты 
+-- для врача с заданным id изменить номер телефона на заданный
 CREATE OR REPLACE PROCEDURE update_doctor_phone(_id integer, _new_phone varcar(11))
 LANGUAGE plpython3u
 AS $$
@@ -76,21 +76,20 @@ alter table doctors add column fired boolean;
 update doctors set fired = false;
 CREATE VIEW doctors_view AS SELECT * FROM doctors;
 
-
 CREATE OR REPLACE FUNCTION doctors_instead_delete()
 RETURNS trigger 
 AS $$
 plan = plpy.prepare("UPDATE doctors SET fired = true where id = $1;", ['integer'])
-rv = plpy.execute(plan, [TD["old"]["id"]])
+rv = plpy.execute(plan, [TD['old']['id']])
 return TD['new']
 $$ LANGUAGE plpython3u;
 
-
 CREATE TRIGGER trigger_doctors
-BEFORE DELETE ON doctors FOR EACH ROW
+INSTEAD OF DELETE ON
+doctors_view FOR EACH ROW
 EXECUTE PROCEDURE doctors_instead_delete();
 
-DELETE FROM doctors WHERE id = 1;
+DELETE FROM doctors_view WHERE id = 1;
 
 SELECT * FROM doctors;
 
@@ -105,15 +104,13 @@ CREATE TYPE doctors_info AS (
 );
 
 -- возвращает информацию о враче по id врача
-CREATE OR REPLACE FUNCTION get_doctors_info(_id integer)
-RETURNS doctors_info
-AS $$
-f = plpy.execute("select * from doctors")
-
-for row_f in f:
-    if row_f['id'] == _id:
-		return (row_f['name'], row_f['surame'], row_f['speciality'], row_f['phone_num'])
-		
-$$ LANGUAGE plpythonu;
+create or replace function get_doctors_info(_id integer)
+returns doctors_info
+as $$
+f = plpy.execute("select * from doctors;")
+for row in f:
+    if row['id'] == _id:
+        return (row['name'], row['surname'], row['speciality'], row['phone_num'])
+$$ language plpython3u;
 
 SELECT * FROM get_doctors_info(1);
