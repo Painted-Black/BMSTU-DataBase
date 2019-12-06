@@ -95,7 +95,7 @@ DELETE FROM doctors WHERE id = 1;
 SELECT * FROM doctors;
 
 -- 6) Определяемый пользователем тип данных
--- Информация о билете: имя фильма, имя билета, количество купленных билетов
+-- Информация о враче: имя, фамилия, специальность, номер телефона
 CREATE TYPE doctors_info AS (
 
   doc_name varchar,
@@ -104,7 +104,7 @@ CREATE TYPE doctors_info AS (
   doc_phone varchar
 );
 
--- возвращает информацию о билете по id билета
+-- возвращает информацию о враче по id врача
 CREATE OR REPLACE FUNCTION get_doctors_info(_id integer)
 RETURNS doctors_info
 AS $$
