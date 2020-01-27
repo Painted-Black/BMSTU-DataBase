@@ -1,0 +1,66 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "array",
+    "items": {
+        "$ref": "#/definitions/WelcomeElement"
+    },
+    "definitions": {
+        "WelcomeElement": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "enrollee_id": {
+                    "type": "integer"
+                },
+                "specialty_id": {
+                    "type": "integer"
+                },
+                "university_id": {
+                    "type": "integer"
+                },
+                "form": {
+                    "$ref": "#/definitions/Form"
+                },
+                "base": {
+                    "$ref": "#/definitions/Base"
+                },
+                "date": {
+                    "type": "string",
+                    "format": "date"
+                }
+            },
+            "required": [
+                "base",
+                "date",
+                "enrollee_id",
+                "form",
+                "id",
+                "specialty_id",
+                "university_id"
+            ],
+            "title": "WelcomeElement"
+        },
+        "Base": {
+            "type": "string",
+            "enum": [
+                "free",
+                "paid"
+            ],
+            "title": "Base"
+        },
+        "Form": {
+            "type": "string",
+            "enum": [
+                "part-time",
+                "distance",
+                "extramural",
+                "full-time",
+                "evening"
+            ],
+            "title": "Form"
+        }
+    }
+}

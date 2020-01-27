@@ -1,0 +1,60 @@
+{
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": "Doctor ID"
+            },
+            "name": {
+                "type": "string",
+                "maxLength": 60,
+                "description": "Doctor name"
+            },
+            "surname": {
+                "type": "string",
+                "maxLength": 60,
+                "description": "Doctor surname"
+            },
+            "sex": {
+                "type": "string",
+                "enum": ["м", "ж"],
+                "description": "Doctor sex"
+            },
+            "date_of_birth": {
+                "type": "string",
+                "format": "date",
+                "description": "Doctor date of birth"
+            },
+            "speciality": {
+                "type": "string",
+                "description": "Doctor speciality"
+            },
+            "phone_num": {
+                "type": "string",
+                "minLength": 11,
+                "maxLength": 11,
+                "description": "Doctor phone number"
+            },
+            "category": {
+                "type": "string",
+                "enum": ["Первая", "Вторая", "Высшая"],
+                "description": "Doctor category"
+            },
+            "salary": {
+                "type": "integer",
+                "minimum": 9000,
+                "description": "Doctor salary"
+            },
+            "fired": {
+                "type": "boolean",
+                "description": "Doctor fired or not"
+            }
+        },
+        "required": ["id", "name", "surname", "sex", "speciality",
+            "phone_num", "category", "salary", "fired", "date_of_birth"],
+        "additionalProperties": false
+    }
+}
+
