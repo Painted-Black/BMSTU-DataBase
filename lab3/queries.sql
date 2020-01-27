@@ -67,27 +67,120 @@ END;
 $$ LANGUAGE plpgsql;
 
 --Функция с рекурсивным ОТВ
-CREATE FUNCTION parents() RETURNS TABLE (id integer, name text, parent integer, type text, PATH text, LEVEL integer) AS $$
+CREATE FUNCTION parents() RETURNS TABLE (id integer, name text, surname text, parent integer, PATH text, LEVEL integer) AS $$
 (
-    WITH RECURSIVE temp1 (id ,name, parent, type, PATH, LEVEL) AS 
-    (
-        SELECT T1.id, T1.name, T1.parent, T1.type, CAST (T1.id AS VARCHAR (50)) as PATH, 1
-            FROM organisations T1 WHERE T1.parent IS NULL
+	WITH RECURSIVE temp1 (id, name, surname, parent, PATH, LEVEL) AS 
+		(
+        SELECT T1.id, T1.name, T1.surname, T1.chief, CAST (T1.id AS VARCHAR (50)) as PATH, 1
+            FROM doctors T1 WHERE T1.chief IS NULL
         UNION
-        SELECT T2.id, T2.name, T2.parent, T2.type, CAST (temp1.PATH ||'->'|| T2.id AS VARCHAR(50)) ,LEVEL + 1
-            FROM organisations T2 INNER JOIN temp1 ON( temp1.id= T2.parent)
-    )
-    select * from temp1 ORDER BY PATH
+        SELECT T2.id, T2.name, T2.surname, T2.chief, CAST (temp1.PATH ||'->'|| T2.id AS VARCHAR(50)), LEVEL + 1
+            FROM doctors T2 INNER JOIN temp1 ON(temp1.id = T2.chief)
+		)
+		select * from temp1
 )
 $$ LANGUAGE SQL;
+
+SELECT * FROM parents();
 
 --Хранимая процедура без параметров или с параметрами
 CREATE PROCEDURE add_reception(_patient integer, _doctor integer, _date_time timestamp) AS $$
     INSERT INTO receprions(patient, date_time, doctor) VALUES (_patient, _date_time, _doctor);
-$$ LANGUAGE SQL;s
+$$ LANGUAGE SQL;
 
+CALL add_reception(2, 5, '2019-11-16');
 
+--Хранимая процедура с курсором
+CREATE OR REPLACE PROCEDURE count_specialities(_cat _CATEGORY, _spec text) AS $$
+	DECLARE
+		high_doctors_cursor NO SCROLL CURSOR FOR SELECT d.id FROM doctors d WHERE d.category = _cat AND d.speciality = _spec;
+		cnt integer := 0;
+		rec_doctors RECORD;
+	BEGIN
+		OPEN high_doctors_cursor;
+		LOOP
+			FETCH high_doctors_cursor INTO rec_doctors;
+			IF NOT FOUND THEN EXIT;END IF;
+			cnt = cnt + 1;
+		END LOOP;
+		RAISE NOTICE 'Врачей специальности "%" категории "%" всего: %', _spec, _cat, cnt;
+		CLOSE high_doctors_cursor;
+	END;
+$$ LANGUAGE plpgsql;
 
+CALL count_specialities('Высшая', 'Валеолог');
+
+--Хранимая процедура доступа к метаданным
+CREATE OR REPLACE PROCEDURE meta() AS $$
+	DECLARE tx CURSOR FOR 	
+		SELECT 
+			format('%I.%I.%I', fk.table_schema, fk.table_name, fk.column_name) AS foreign_side,
+			format('%I.%I.%I', pk.table_schema, pk.table_name, pk.column_name) AS target_side
+		FROM information_schema.referential_constraints rc 
+			INNER JOIN information_schema.key_column_usage fk 
+			ON (rc.constraint_catalog = fk.constraint_catalog 
+			AND rc.constraint_schema = fk.constraint_schema 
+			AND rc.constraint_name = fk.constraint_name) 
+			INNER JOIN information_schema.constraint_column_usage pk 
+			ON (rc.unique_constraint_catalog = pk.constraint_catalog 
+			AND rc.unique_constraint_schema = rc.constraint_schema 
+			AND rc.unique_constraint_name = pk.constraint_name);
+		-- The view key_column_usage identifies all columns in the current database that are restricted by some unique, primary key, or foreign key constraint.
+		-- The view constraint_column_usage identifies all columns in the current database that are used by some constraint. 
+		-- For a foreign key constraint, this view identifies the columns that the foreign key references.
+			
+		rec_tables RECORD;
+BEGIN
+
+	OPEN tx;
+	LOOP
+		FETCH tx INTO rec_tables;
+			
+		IF NOT FOUND THEN 
+			EXIT;
+		END IF;
+			
+		RAISE NOTICE '% -> %', rec_tables.foreign_side, rec_tables.target_side;
+	END LOOP;
+	CLOSE tx;
+	
+END;
+$$ LANGUAGE plpgsql;
+
+CALL meta();
+
+--Рекурсивную хранимую процедуру или хранимую процедур с рекурсивным ОТВ
+ALTER TABLE doctors ADD COLUMN chief INTEGER;
+ALTER TABLE doctors ADD CONSTRAINT doctors_doctors_fkey REFERENCES doctors.id;
+
+CREATE PROCEDURE chiefs() AS $$
+	DECLARE tx CURSOR FOR
+		WITH RECURSIVE temp1 (id, name, surname, parent, PATH, LEVEL) AS 
+		(
+        SELECT T1.id, T1.name, T1.surname, T1.chief, CAST (T1.id AS VARCHAR (50)) as PATH, 1
+            FROM doctors T1 WHERE T1.chief IS NULL
+        UNION
+        SELECT T2.id, T2.name, T2.surname, T2.chief, CAST (temp1.PATH ||'->'|| T2.id AS VARCHAR(50)), LEVEL + 1
+            FROM doctors T2 INNER JOIN temp1 ON(temp1.id = T2.chief)
+		)
+		select * from temp1;
+	rec_tables RECORD;
+BEGIN
+	OPEN tx;
+	LOOP
+		FETCH tx INTO rec_tables;
+			
+		IF NOT FOUND THEN 
+			EXIT;
+		END IF;
+			
+		RAISE NOTICE '%, %, %, %, %, %', rec_tables.id, rec_tables.name, rec_tables.surname, rec_tables.parent, rec_tables.PATH, rec_tables.LEVEL;
+	END LOOP;
+	CLOSE tx;
+END;
+$$ LANGUAGE plpgsql;
+
+CALL chiefs();
 
 
 /*
@@ -111,5 +204,3 @@ $$ LANGUAGE SQL;s
 | We can use exception handling   | We can't use Try-Catch block in UDF.   |
 | using Try-Catch block in SP.    |                                        |
 +---------------------------------+----------------------------------------+ */
-
-
